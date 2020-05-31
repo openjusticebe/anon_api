@@ -3,7 +3,7 @@ import re
 import os
 import requests
 """
-Integrate with the anon etaamb cotnainer
+Integrate with the anon etaamb container
 """
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,6 @@ def multi_score(lang, tokens):
     scores = get_seq_scores(lang, tokenString).split(' ')
     result = {}
     for i, token in enumerate(tokens):
-        print(f"{i} : {token} : {scores[i]}")
         result[token] = int(scores[i])
     return result
 
@@ -73,6 +72,5 @@ def bad_tokens(scores):
 
 def parse_text(text, badtable):
     for token, score in badtable:
-        print(f"Applying bad token {token}, score {score}")
         text = re.sub(token, '<span class="anonymized">****</span>', text, flags=re.IGNORECASE)
     return text

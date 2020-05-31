@@ -4,3 +4,6 @@ algorithms :
       - "lang"
     env_required:
       - "ANON_ETAAMB_HOST"
+  "anon_test":
+    params: []
+    env_required: []

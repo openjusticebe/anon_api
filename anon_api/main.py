@@ -3,6 +3,7 @@ import argparse
 import logging
 import math
 import os
+import sys
 import yaml
 import json
 from datetime import datetime
@@ -24,6 +25,7 @@ def cfg_get(config):
     def_config = yaml.safe_load(def_config_file)
     return {**def_config, **config}
 
+
 def run_get(name):
     module_path = f'{name}'
     logger.info('Module: %s', module_path)
@@ -36,12 +38,15 @@ def run_get(name):
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.getLevelName('INFO'))
 logger.addHandler(logging.StreamHandler())
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(1, f'{dir_path}/modules')
 config = {
     'proxy_prefix': os.getenv('PROXY_PREFIX', '/'),
     'server': {
         'host': os.getenv('HOST', '127.0.0.1'),
         'port': int(os.getenv('PORT', '5000')),
         'log_level': os.getenv('LOG_LEVEL', 'info'),
+        'timeout_keep_alive': 0,
     },
     'log_level': 'info',
 }
@@ -57,7 +62,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -102,24 +107,24 @@ def run(data: RunInModel):
     """
     plugins = config['algorithms']
     result = data.text
-    logs = {}
+    log_lines = []
     try:
         for algo in data.algo_list:
-            if algo['id'] not in plugins:
+            if algo.id not in plugins:
                 raise RuntimeError("Method not available")
-            definition = plugins[algo['id']]
+            definition = plugins[algo.id]
             for p in definition['params']:
-                if p not in algo['params']:
+                if p not in algo.params:
                     raise RuntimeError(f"Required parameter {p} not provided")
-            run = run_get(algo['id'])
-            result, log = run(data.text, algo['params'])
-            logs[algo['id']] = log
+            run = run_get(algo.id)
+            result, log = run(data.text, algo.params)
+            log_lines = log_lines + log
 
         return {
             '_v': VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'text': result,
-            'log': json.dumps(logs),
+            'log': json.dumps({'lines': log_lines}),
         }
 
     except Exception as e:
@@ -128,7 +133,7 @@ def run(data: RunInModel):
             '_v': VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'text': data.text,
-            'log': json.dumps({'error': f'Error occured: {e.msg}'}),
+            'log': json.dumps({'error': f"Error occured: {str(e)}"}),
         }
 
 
@@ -138,11 +143,11 @@ if __name__ == "__main__":
     parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Debug mode')
     args = parser.parse_args()
     if args.debug:
+        logger.setLevel(logging.getLevelName('DEBUG'))
         logger.debug('Debug activated')
         config['log_level'] = 'debug'
         config['server']['log_level'] = 'debug'
         logger.debug('Arguments: %s', args)
-
 
     uvicorn.run(
         app,
