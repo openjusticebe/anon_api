@@ -8,6 +8,7 @@ RUN apt-get update && apt-get upgrade -y && \
 RUN pipenv install --system --deploy
 
 COPY anon_api/ /anon_api
+COPY config_default.yaml config_default.yaml
 COPY Makefile /
 
 WORKDIR /
