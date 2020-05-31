@@ -117,7 +117,7 @@ def run(data: RunInModel):
                 if p not in algo.params:
                     raise RuntimeError(f"Required parameter {p} not provided")
             run = run_get(algo.id)
-            result, log = run(data.text, algo.params)
+            result, log = run(result, algo.params)
             log_lines = log_lines + log
 
         return {
