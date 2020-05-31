@@ -1,0 +1,6 @@
+algorithms :
+  "anon_etaamb":
+    params:
+      - "lang"
+    env_required:
+      - "ANON_ETAAMB_HOST"

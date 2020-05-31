@@ -37,10 +37,15 @@ class AlgoTypes(str, Enum):
     test = 'test'  # Simply returns submitted text
 
 
+class AlgoChoice(BaseModel):
+    id: str = Field(..., description='Algo identifier')
+    params: Json = Field(None, description='Algo parameters')
+
+
 class RunInModel(BaseModel):
     v: PositiveInt = Field(..., alias='_v', description="Version")
     timestamp: datetime = Field(..., alias='_timestamp', description="Timestamp (UNIX Epoch)")
-    algo_list: List[str] = Field(..., description="List of algorithms and techniques to apply")
+    algo_list: List[AlgoChoice] = Field(..., description="List of algorithms and techniques to apply")
     format: FormatTypes = Field(..., description="Format of submitted text")
     encoding: EncodingTypes = Field(None, description="Encoding of submitted text (if applicable)")
     text: str = Field(..., description="Text to depersonalize")
@@ -51,8 +56,8 @@ class RunInModel(BaseModel):
                 '_v': 1,
                 '_timestamp': 1239120938,
                 'algo_list': [
-                    'algo_1',
-                    'algo_2',
+                    {'id': 'algo_1', 'params': "{}"},
+                    {'id': 'algo_2', 'params': "{}"}
                 ],
                 'format': 'text',
                 'encoding': 'utf8',

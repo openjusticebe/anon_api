@@ -3,6 +3,8 @@ import argparse
 import logging
 import math
 import os
+import yaml
+import json
 from datetime import datetime
 
 import pytz
@@ -15,6 +17,18 @@ from models import (
     RunOutModel,
     ListOutModel,
 )
+
+
+def cfg_get(config):
+    def_config_file = open('config_default.yaml', 'r')
+    def_config = yaml.safe_load(def_config_file)
+    return {**def_config, **config}
+
+def run_get(name):
+    module_path = f'{name}'
+    logger.info('Module: %s', module_path)
+    module = __import__(module_path)
+    return getattr(module, 'run')
 
 
 # ################################################### SETUP AND ARGUMENT PARSING
@@ -31,6 +45,9 @@ config = {
     },
     'log_level': 'info',
 }
+config = cfg_get(config)
+print("Applied configuration:")
+print(json.dumps(config, indent=2))
 
 VERSION = 1
 START_TIME = datetime.now(pytz.utc)
@@ -83,13 +100,36 @@ def run(data: RunInModel):
     """
     Run selected algorithms and techniques on submitted text
     """
+    plugins = config['algorithms']
+    result = data.text
+    logs = {}
+    try:
+        for algo in data.algo_list:
+            if algo['id'] not in plugins:
+                raise RuntimeError("Method not available")
+            definition = plugins[algo['id']]
+            for p in definition['params']:
+                if p not in algo['params']:
+                    raise RuntimeError(f"Required parameter {p} not provided")
+            run = run_get(algo['id'])
+            result, log = run(data.text, algo['params'])
+            logs[algo['id']] = log
 
-    return {
-        '_v': VERSION,
-        '_timestamp': datetime.now(pytz.utc),
-        'text': data.text,
-        'log': '{}',
-    }
+        return {
+            '_v': VERSION,
+            '_timestamp': datetime.now(pytz.utc),
+            'text': result,
+            'log': json.dumps(logs),
+        }
+
+    except Exception as e:
+        logger.exception(e)
+        return {
+            '_v': VERSION,
+            '_timestamp': datetime.now(pytz.utc),
+            'text': data.text,
+            'log': json.dumps({'error': f'Error occured: {e.msg}'}),
+        }
 
 
 if __name__ == "__main__":
@@ -102,6 +142,7 @@ if __name__ == "__main__":
         config['log_level'] = 'debug'
         config['server']['log_level'] = 'debug'
         logger.debug('Arguments: %s', args)
+
 
     uvicorn.run(
         app,
