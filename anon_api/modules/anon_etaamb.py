@@ -21,7 +21,7 @@ def run(text, params):
 
     result = parse_text(text, badtable)
 
-    msg = f"Token count: {len(tokens)}, bad: {badcount}"
+    msg = f"Token count: {len(tokens)}, masked: {badcount}"
     logger.debug(msg)
     log.append(msg)
     return result, log
