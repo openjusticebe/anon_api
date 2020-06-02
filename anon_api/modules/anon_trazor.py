@@ -17,6 +17,39 @@ FREEBASE_LOOKUP = {
     '/organization/organization': 'organization',
 }
 
+_COLORS = [
+    '#ffb5e8',
+    '#ff9cee',
+    '#ffccf0',
+    '#fcc2ff',
+    '#f6a6ff',
+    '#b28dff',
+    '#c5a3ff',
+    '#d5aaff',
+    '#ecd4ff',
+    '#fbe4ff',
+    '#dcd3ff',
+    '#a79aff',
+    '#b5b9ff',
+    '#97a2ff',
+    '#afcbff',
+    '#aff8db',
+    '#c4faf8',
+    '#85e3ff',
+    '#ace7ff',
+    '#6eb5ff',
+    '#bffcc6',
+    '#dbffd6',
+    '#f3ffe3',
+    '#e7ffac',
+    '#ffffd1',
+    '#ffc9de',
+    '#ffabab',
+    '#ffbebc',
+    '#ffcbc1',
+    '#fff5ba',
+]
+
 
 def api_keys():
     barrel = []
@@ -40,7 +73,8 @@ def run(text, params):
         log.append(f"Found \"{e['id']}\" ({e['type']} #{e['index']}), score: {e['score']}")
         text = re.sub(f"qu'(?={e['text']})", 'que ', text, flags=re.IGNORECASE)
         text = re.sub(f"d'(?={e['text']})", 'de ', text, flags=re.IGNORECASE)
-        text = re.sub(f"{e['text']}", f'<span class="pseudonymized {e["type"]}">{e["type"]}_{e["index"]}</span>', text, flags=re.IGNORECASE)
+        title = f'{e["type"]}_{e["index"]}'
+        text = re.sub(f"{e['text']}", f'<span class="pseudonymized {e["type"]} {title}">{title}</span>', text, flags=re.IGNORECASE)
     return text, log
 
 
@@ -68,7 +102,7 @@ def get_entities(text, params):
             continue
 
         if etype not in ent_types:
-            ent_types[etype] = 0
+            ent_types[etype] = 1
         else:
             ent_types[etype] += 1
 
