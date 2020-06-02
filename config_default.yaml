@@ -7,3 +7,6 @@ algorithms :
   "anon_test":
     params: []
     env_required: []
+  "anon_trazor":
+    params: []
+    env_required: []
