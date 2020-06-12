@@ -12,12 +12,16 @@ import pytz
 import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from starlette.graphql import GraphQLApp
+import graphene
 
 from models import (
     RunInModel,
     RunOutModel,
     ListOutModel,
 )
+
+from lib_graphql import Query
 
 
 def cfg_get(config):
@@ -41,7 +45,7 @@ logger.addHandler(logging.StreamHandler())
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, f'{dir_path}/modules')
 config = {
-    'proxy_prefix': os.getenv('PROXY_PREFIX', '/'),
+    'proxy_prefix': os.getenv('PROXY_PREFIX', ''),
     'server': {
         'host': os.getenv('HOST', '127.0.0.1'),
         'port': int(os.getenv('PORT', '5000')),
@@ -57,7 +61,12 @@ print(json.dumps(config, indent=2))
 VERSION = 1
 START_TIME = datetime.now(pytz.utc)
 
-app = FastAPI(openapi_prefix=config['proxy_prefix'])
+
+# ############################################################### SERVER ROUTES
+# #############################################################################
+
+app = FastAPI(root_path=config['proxy_prefix'])
+app.add_route("/gql", GraphQLApp(schema=graphene.Schema(query=Query)))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

@@ -17,6 +17,7 @@ pytz = "*"
 pyyaml = "*"
 requests = "*"
 textrazor = "*"
+graphene = "*"
 
 [requires]
 python_version = "3.8"

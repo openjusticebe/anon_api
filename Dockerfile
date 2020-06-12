@@ -14,4 +14,4 @@ COPY Makefile /
 WORKDIR /
 
 ENTRYPOINT ["make", "serve"]
-# ENTRYPOINT ["/bin/bash"]
+ ENTRYPOINT ["/bin/bash"]
