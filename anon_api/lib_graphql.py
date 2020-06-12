@@ -8,6 +8,8 @@ class Algorithm(g.ObjectType):
     id = g.String()
     params = g.List(g.String)
     available = g.Boolean(default_value=False)
+    description = g.String(default_value='')
+    url = g.String(default_value='')
 
 
 class Query(g.ObjectType):
@@ -15,7 +17,10 @@ class Query(g.ObjectType):
     algorithm = g.Field(Algorithm, algo_id=g.String())
 
     def resolve_algorithm(root, info, algo_id):
-        data = {'id': algo_id, 'params': []}
+        data = {
+            'id': algo_id,
+            'params': [],
+        }
         return Algorithm(**data)
 
     def resolve_algorithms(root, info):
@@ -24,6 +29,8 @@ class Query(g.ObjectType):
             output.append({
                 'id': k,
                 'params': [],
-                'available': check_envs(data['env_required'])
+                'available': check_envs(data['env_required']),
+                'description': data['description'],
+                'url': data['url'],
             })
         return [Algorithm(**d) for d in output]
