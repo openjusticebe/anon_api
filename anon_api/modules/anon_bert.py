@@ -23,7 +23,7 @@ def run(text, params):
     log = []
     ent_types = {}
     for e in entities:
-        log.append(f"Found \"{e['group']}\" ({e['family']}")
+        log.append(f"Found \"{e['group']}\" ({e['family']})")
         if e['family'] == 'MISC':
             log.append("--> skipping")
             continue
@@ -39,7 +39,10 @@ def run(text, params):
         text = re.sub(f"d'(?={e['group']})", 'de ', text, flags=re.IGNORECASE)
         ttype = FAM2TYPE[e["family"]]
         title = f'{ttype}_{index}'
-        text = re.sub(f"{e['group']}", f'<span class="pseudonymized {ttype} {title}">{title}</span>', text, flags=re.IGNORECASE)
+        print(f"'{e['group']}' / {e['family']} => {ttype} - {title}")
+        if len(e['group']) > 2:
+            #text = re.sub(f"(?P<pre>\W){e['group']}(?P<post>\W)", "\g<pre>coucou\g<post>", text, flags=re.IGNORECASE)
+            text = re.sub(f"{e['group']}", f'<span class="pseudonymized {ttype} {title}">{title}</span>', text, flags=re.IGNORECASE)
 
     return text, log
 
@@ -65,4 +68,5 @@ def get_entities(text, params):
         if t > 4:
             raise RuntimeError("Could not contact server")
     response_data = r.json()
+    logging.debug("Entities: %s", response_data)
     return response_data['entities']
