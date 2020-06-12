@@ -4,7 +4,6 @@ import logging
 import math
 import os
 import sys
-import yaml
 import json
 from datetime import datetime
 
@@ -23,11 +22,7 @@ from models import (
 
 from lib_graphql import Query
 
-
-def cfg_get(config):
-    def_config_file = open('config_default.yaml', 'r')
-    def_config = yaml.safe_load(def_config_file)
-    return {**def_config, **config}
+from lib_misc import cfg_get
 
 
 def run_get(name):

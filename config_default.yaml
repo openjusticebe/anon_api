@@ -10,3 +10,7 @@ algorithms :
   "anon_trazor":
     params: []
     env_required: []
+  "anon_bert":
+    params: []
+    env_required: 
+      - "ANON_BERT_HOST"

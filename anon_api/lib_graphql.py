@@ -1,16 +1,29 @@
-import graphene
-from graphene import ObjectType, String, Schema
+import graphene as g
+from lib_misc import cfg_get, check_envs
+
+ALGO_CONFIG = cfg_get({})['algorithms']
 
 
-class Query(graphene.ObjectType):
-    # this defines a Field `hello` in our Schema with a single Argument `name`
-    hello = String(name=String(default_value="stranger"))
-    goodbye = String()
+class Algorithm(g.ObjectType):
+    id = g.String()
+    params = g.List(g.String)
+    available = g.Boolean(default_value=False)
 
-    # our Resolver method takes the GraphQL context (root, info) as well as
-    # Argument (name) for the Field and returns data for the query Response
-    def resolve_hello(root, info, name):
-        return f'Hello {name}!'
 
-    def resolve_goodbye(root, info):
-        return 'See ya!'
+class Query(g.ObjectType):
+    algorithms = g.List(Algorithm)
+    algorithm = g.Field(Algorithm, algo_id=g.String())
+
+    def resolve_algorithm(root, info, algo_id):
+        data = {'id': algo_id, 'params': []}
+        return Algorithm(**data)
+
+    def resolve_algorithms(root, info):
+        output = []
+        for k, data in ALGO_CONFIG.items():
+            output.append({
+                'id': k,
+                'params': [],
+                'available': check_envs(data['env_required'])
+            })
+        return [Algorithm(**d) for d in output]
