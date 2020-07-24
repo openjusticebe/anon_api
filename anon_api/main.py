@@ -162,13 +162,19 @@ async def extract(rawFile: UploadFile = File(...)):
         #headers={'Accept': 'text/plain'}
     )
     if r.status_code == 200:
-        print(json.dumps(r.json(), indent=2))
+        response = r.json()[0]
+        print(json.dumps(response, indent=2))
+        rawText = response.get('X-TIKA:content', 'none')
+        htmlText = rawText.replace('\n', '').encode('ascii', 'xmlcharrefreplace')
+        print(htmlText)
+
         rawFile.file.seek(0, 2)
         return {
             # "file_size": len(rawFile),
             "filename": rawFile.filename,
             "content_type": rawFile.content_type,
-            "size_bytes": rawFile.file.tell()
+            "size_bytes": rawFile.file.tell(),
+            "html": htmlText
         }
     else:
         raise RuntimeError("Failed to extract text from file")

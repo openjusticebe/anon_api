@@ -19,6 +19,7 @@ requests = "*"
 textrazor = "*"
 graphene = "*"
 python-multipart = "*"
+unicode = "*"
 
 [requires]
 python_version = "3.8"
