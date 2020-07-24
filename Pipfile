@@ -20,6 +20,10 @@ textrazor = "*"
 graphene = "*"
 python-multipart = "*"
 unicode = "*"
+html2markdown = "*"
+bs4 = "*"
+html5lib = "*"
+lxml = "*"
 
 [requires]
 python_version = "3.8"

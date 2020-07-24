@@ -6,7 +6,9 @@ import os
 import sys
 import json
 import requests
+import html2markdown
 from datetime import datetime
+from bs4 import BeautifulSoup
 
 import pytz
 import uvicorn
@@ -168,13 +170,24 @@ async def extract(rawFile: UploadFile = File(...)):
         htmlText = rawText.replace('\n', '').encode('ascii', 'xmlcharrefreplace')
         print(htmlText)
 
+        soup = BeautifulSoup(rawText, 'html5lib')
+        body = soup.find('body')
+        # body = soup.find('div', {'class': 'page'})
+        print('-----------------')
+        print('-----------------')
+        print(body.text)
+        print('-----------------')
+        print('-----------------')
+        mdText = body.text
+
         rawFile.file.seek(0, 2)
         return {
             # "file_size": len(rawFile),
             "filename": rawFile.filename,
             "content_type": rawFile.content_type,
             "size_bytes": rawFile.file.tell(),
-            "html": htmlText
+            "html": htmlText,
+            "markdown": mdText,
         }
     else:
         raise RuntimeError("Failed to extract text from file")
