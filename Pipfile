@@ -18,6 +18,7 @@ pyyaml = "*"
 requests = "*"
 textrazor = "*"
 graphene = "*"
+python-multipart = "*"
 
 [requires]
 python_version = "3.8"
