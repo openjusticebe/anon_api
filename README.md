@@ -29,3 +29,8 @@ Then check these local URI's:
 * http://127.0.0.1:5000 for root
 * http://127.0.0.1:5000/docs for OpenAPI documentation
 * http://127.0.0.1:5000/gql for GraphQL interface
+
+Example curl command to test graphql interface:
+```bash
+curl -X POST -H "Content-Type: application/json" --data '{ "query": "{ algorithms {id, description}}"}' https://anon-api.openjustice.be/gql/
+```
