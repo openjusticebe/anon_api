@@ -79,3 +79,9 @@ class RunOutModel(BaseModel):
                 'text': 'Lorem ***** ...',
                 'log': '{}'
             }}
+
+class ExtractInModel(BaseModel):
+    pass
+
+class ExtractOutModel(BaseModel):
+    pass
