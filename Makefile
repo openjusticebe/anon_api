@@ -1,10 +1,7 @@
-install:
-	pipenv install --dev
-
 # tests: flake8 pylint-fail-under unittests behave
 
 flake8:
-	pipenv run flake8
+	poetry run flake8
 
 pylint:
 	find . -name "*.py" -not -path '*/\.*' -exec pipenv run pylint --rcfile=.pylintrc '{}' +
@@ -28,4 +25,4 @@ unittests:
 	PYTHONPATH=${PYTHONPATH}:./:./matching:./anon_api pipenv run pytest --cov=./anon_api .
 
 isort:
-	pipenv run isort ./**/*.py
+	poetry run isort ./**/*.py

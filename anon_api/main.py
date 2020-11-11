@@ -12,20 +12,20 @@ from bs4 import BeautifulSoup
 
 import pytz
 import uvicorn
-from fastapi import FastAPI,  File, UploadFile
+from fastapi import FastAPI, File, UploadFile
 from starlette.middleware.cors import CORSMiddleware
 from starlette.graphql import GraphQLApp
 import graphene
 
-from models import (
+from anon_api.models import (
     RunInModel,
     RunOutModel,
     ListOutModel,
 )
 
-from lib_graphql import Query
+from anon_api.lib_graphql import Query
 
-from lib_misc import cfg_get
+from anon_api.lib_misc import cfg_get
 
 
 def run_get(name):
@@ -158,10 +158,8 @@ async def extract(rawFile: UploadFile = File(...)):
     tika_server = f"http://{tConf['host']}:{tConf['port']}/rmeta/form"
     r = requests.post(
         tika_server,
-        # files={rawFile.filename: rawFile.file.read()}
         files={'upload': rawFile.file.read()},
         headers={'Accept': 'application/json'}
-        #headers={'Accept': 'text/plain'}
     )
     if r.status_code == 200:
         response = r.json()[0]
@@ -193,7 +191,11 @@ async def extract(rawFile: UploadFile = File(...)):
         raise RuntimeError("Failed to extract text from file")
 
 
-if __name__ == "__main__":
+# ##################################################################### STARTUP
+# #############################################################################
+def main():
+    global config
+
     parser = argparse.ArgumentParser(description='Matching server process')
     parser.add_argument('--config', dest='config', help='config file', default=None)
     parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Debug mode')
@@ -209,3 +211,7 @@ if __name__ == "__main__":
         app,
         **config['server']
     )
+
+
+if __name__ == "__main__":
+    main()

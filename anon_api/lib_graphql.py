@@ -1,5 +1,5 @@
 import graphene as g
-from lib_misc import cfg_get, check_envs
+from anon_api.lib_misc import cfg_get, check_envs
 
 ALGO_CONFIG = cfg_get({})['algorithms']
 

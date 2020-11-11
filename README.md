@@ -19,9 +19,9 @@ Deployment is through docker or pipenv
 # docker
 > docker build -t "api" ./  && docker run --rm -it -p 5000:5000 api
 
-# pipenv
-> make install
-> make serve-dev
+# poetry
+> poetry install
+> poetry run api
 ```
 
 Then check these local URI's:

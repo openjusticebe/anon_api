@@ -1,16 +1,24 @@
 FROM python:3.8-slim-buster
 
-RUN pip install pipenv
+ARG ENV="dev"
+ENV ENV=${ENV} \
+  PYTHONFAULTHANDLER=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONHASHSEED=random \
+  PIP_NO_CACHE_DIR=off \
+  PIP_DISABLE_PIP_VERSION_CHECK=on \
+  PIP_DEFAULT_TIMEOUT=100 \
+  POETRY_VERSION=1.1.4
 
-COPY Pipfile* /
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install build-essential -y
-RUN pipenv install --system --deploy
+RUN apt-get update && apt-get upgrade -y
+RUN pip install "poetry==$POETRY_VERSION"
 
-COPY anon_api/ /anon_api
-COPY config_default.yaml config_default.yaml
-COPY Makefile /
+WORKDIR /app
+COPY poetry.lock pyproject.toml /app/
+COPY . /app
+RUN poetry config virtualenvs.create false && \
+    poetry install $(test $ENV == "prod" && echo "--no-dev") --no-interaction --no-ansi
 
-WORKDIR /
 
-ENTRYPOINT ["make", "serve"]
+EXPOSE 5000
+ENTRYPOINT ["poetry", "run", "api"]
