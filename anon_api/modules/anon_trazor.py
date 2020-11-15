@@ -78,6 +78,22 @@ def run(text, params):
     return text, log
 
 
+def parse(text, params):
+    entities = get_entities(text, params)
+    matches = []
+    log = []
+    for e in entities:
+        log.append(f"Found \"{e['id']}\" ({e['type']} #{e['index']}), score: {e['score']}")
+        title = f'{e["type"]}_{e["index"]}'
+        matches.append({
+            'text': e['text'],
+            'words': e['words'],
+            'type': e['type'],
+            'id': title,
+        })
+    return matches, log
+
+
 def get_type(fb_types):
     for t in fb_types:
         if t in FREEBASE_LOOKUP:

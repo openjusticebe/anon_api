@@ -64,6 +64,44 @@ class RunInModel(BaseModel):
                 'text': 'Lorem Ipsum ...'
             }}
 
+class ParseInModel(BaseModel):
+    v: PositiveInt = Field(..., alias='_v', description="Version")
+    timestamp: datetime = Field(..., alias='_timestamp', description="Timestamp (UNIX Epoch)")
+    algo_list: List[AlgoChoice] = Field(..., description="List of algorithms and techniques to apply")
+    format: FormatTypes = Field(..., description="Format of submitted text")
+    encoding: EncodingTypes = Field(None, description="Encoding of submitted text (if applicable)")
+    text: str = Field(..., description="Text to depersonalize")
+
+    class Config:
+        schema_extra = {
+            'example': {
+                '_v': 1,
+                '_timestamp': 1239120938,
+                'algo_list': [
+                    {'id': 'algo_1', 'params': "{}"},
+                    {'id': 'algo_2', 'params': "{}"}
+                ],
+                'format': 'text',
+                'encoding': 'utf8',
+                'text': 'Lorem Ipsum ...'
+            }}
+
+
+class ParseOutModel(BaseModel):
+    v: PositiveInt = Field(..., alias='_v', description="Version")
+    timestamp: datetime = Field(..., alias='_timestamp', description="Timestamp (UNIX Epoch)")
+    entities: Json = Field(..., description="Raw entities (Raw json datatype)")
+    log: Json = Field(..., description="Raw log (Raw json datatype)")
+
+    class Config:
+        schema_extra = {
+            'example': {
+                '_v': 1,
+                '_timestamp': 1239120938,
+                'entities': '{}',
+                'log': '{}',
+            }}
+
 
 class RunOutModel(BaseModel):
     v: PositiveInt = Field(..., alias='_v', description="Version")

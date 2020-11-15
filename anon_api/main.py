@@ -20,6 +20,8 @@ import graphene
 from anon_api.models import (
     RunInModel,
     RunOutModel,
+    ParseInModel,
+    ParseOutModel,
     ListOutModel,
 )
 
@@ -33,6 +35,13 @@ def run_get(name):
     logger.info('Module: %s', module_path)
     module = __import__(module_path)
     return getattr(module, 'run')
+
+
+def parse_get(name):
+    module_path = f'{name}'
+    logger.info('Module: %s', module_path)
+    module = __import__(module_path)
+    return getattr(module, 'parse')
 
 
 # ################################################### SETUP AND ARGUMENT PARSING
@@ -149,6 +158,43 @@ def run(data: RunInModel):
         }
 
 
+@app.post('/parse', response_model=ParseOutModel)
+def parse(data: ParseInModel):
+    """
+    Run selected algorightms, get entities and types
+    """
+    plugins = config['algorithms']
+    result = data.text
+    log_lines = []
+    try:
+        for algo in data.algo_list:
+            if algo.id not in plugins:
+                raise RuntimeError("Method not available")
+            definition = plugins[algo.id]
+            for p in definition['params']:
+                if p not in algo.params:
+                    raise RuntimeError(f"Required parameter {p} not provided")
+            parse = parse_get(algo.id)
+            result, log = parse(result, algo.params)
+            log_lines = log_lines + log
+
+        return {
+            '_v': VERSION,
+            '_timestamp': datetime.now(pytz.utc),
+            'entities': json.dumps(result),
+            'log': json.dumps({'lines': log_lines}),
+        }
+
+    except Exception as e:
+        logger.exception(e)
+        return {
+            '_v': VERSION,
+            '_timestamp': datetime.now(pytz.utc),
+            'entities': '{}',
+            'log': json.dumps({'error': f"Error occured: {str(e)}"}),
+        }
+
+
 @app.post('/extract/')
 async def extract(rawFile: UploadFile = File(...)):
     """
@@ -171,11 +217,11 @@ async def extract(rawFile: UploadFile = File(...)):
         soup = BeautifulSoup(rawText, 'html5lib')
         body = soup.find('body')
         # body = soup.find('div', {'class': 'page'})
-        print('-----------------')
-        print('-----------------')
-        print(body.text)
-        print('-----------------')
-        print('-----------------')
+        # print('-----------------')
+        # print('-----------------')
+        # print(body.text)
+        # print('-----------------')
+        # print('-----------------')
         mdText = body.text
 
         rawFile.file.seek(0, 2)
