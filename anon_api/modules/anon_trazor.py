@@ -82,19 +82,20 @@ def parse(text, params):
     entities = get_entities(text, params)
     matches = {}
     log = []
+    logger.warning(entities)
     for e in entities:
         log.append(f"Found \"{e['id']}\" ({e['type']} #{e['index']}), score: {e['score']}")
-        title = f'{e["type"]}_{e["index"]}'
-        if title in matches:
-            if e['text'] not in matches[title]['text']:
-                mathes[title]['text'].append(e['text'])
-            else:
-                matches.append({
-                    'text': [e['text']],
-                    'words': e.get('words', []),
-                    'type': e['type'],
-                    'id': title,
-                })
+        if e['id'] in matches:
+            if e['text'] not in matches[e['id']]['text']:
+                matches[e['id']]['text'].append(e['text'])
+        else:
+            title = f'{e["type"]}_{e["index"]}'
+            matches[e['id']] = {
+                'text': [e['text']],
+                'words': e.get('words', []),
+                'type': e['type'],
+                'id': title,
+            }
     return matches, log
 
 
@@ -126,6 +127,8 @@ def get_entities(text, params):
         else:
             ent_types[etype] += 1
 
+        # FIXME: code ignores the same ID (for the same entity) may appear more then once,
+        # which increments the index wronfully
         data = {
             'id': e.id,
             'words': e.matched_words,

@@ -64,6 +64,7 @@ class RunInModel(BaseModel):
                 'text': 'Lorem Ipsum ...'
             }}
 
+
 class ParseInModel(BaseModel):
     v: PositiveInt = Field(..., alias='_v', description="Version")
     timestamp: datetime = Field(..., alias='_timestamp', description="Timestamp (UNIX Epoch)")
@@ -78,12 +79,11 @@ class ParseInModel(BaseModel):
                 '_v': 1,
                 '_timestamp': 1239120938,
                 'algo_list': [
-                    {'id': 'algo_1', 'params': "{}"},
-                    {'id': 'algo_2', 'params': "{}"}
+                    {'id': 'anon_trazor', 'params': "{}"}
                 ],
                 'format': 'text',
                 'encoding': 'utf8',
-                'text': 'Lorem Ipsum ...'
+                'text': 'e Microsoft quand Lorem Ipsum et surtout microsoft dans un pc Intel ..'
             }}
 
 
