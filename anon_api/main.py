@@ -201,18 +201,27 @@ async def extract(rawFile: UploadFile = File(...)):
     Extract text from provided file
     """
     tConf = config['tika']
-    tika_server = f"http://{tConf['host']}:{tConf['port']}/rmeta/form"
+    #tika_server = f"http://{tConf['host']}:{tConf['port']}/rmeta/form"
+    tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
     r = requests.post(
         tika_server,
         files={'upload': rawFile.file.read()},
-        headers={'Accept': 'application/json'}
+        #headers={'Accept': 'application/json'}
+        headers={'Accept': 'text/plain; charset=UTF-8'}
     )
     if r.status_code == 200:
-        response = r.json()[0]
-        print(json.dumps(response, indent=2))
+        if r.encoding is None:
+            r.encoding = 'utf-8'
+        return {
+            # "file_size": len(rawFile),
+            "filename": rawFile.filename,
+            "content_type": rawFile.content_type,
+            "size_bytes": rawFile.file.tell(),
+            "html": r.text,
+            "markdown": r.text,
+        }
         rawText = response.get('X-TIKA:content', 'none')
         htmlText = rawText.replace('\n', '').encode('ascii', 'xmlcharrefreplace')
-        print(htmlText)
 
         soup = BeautifulSoup(rawText, 'html5lib')
         body = soup.find('body')
