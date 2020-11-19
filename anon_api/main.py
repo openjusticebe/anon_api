@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 import pytz
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import PlainTextResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.graphql import GraphQLApp
 import graphene
@@ -58,6 +59,11 @@ config = {
         'port': int(os.getenv('PORT', '5000')),
         'log_level': os.getenv('LOG_LEVEL', 'info'),
         'timeout_keep_alive': 0,
+    },
+    'tika_ocr': {
+        'host': os.getenv('TIKA_OCR_HOST', '127.0.0.1'),
+        'port': os.getenv('TIKA_OCR_PORT', 9998),
+        'version': '1.24.1'
     },
     'tika': {
         'host': os.getenv('TIKA_HOST', '127.0.0.1'),
@@ -195,55 +201,51 @@ def parse(data: ParseInModel):
         }
 
 
-@app.post('/extract/')
-async def extract(rawFile: UploadFile = File(...)):
+@app.post('/fileinfo/')
+async def fileinfo(rawFile: UploadFile = File(...)):
+    """
+    Get info about file
+    """
+    tConf = config['tika']
+    tika_server = f"http://{tConf['host']}:{tConf['port']}/meta/form"
+    r = requests.post(
+        tika_server,
+        files={'upload': rawFile.file.read()},
+        headers={'Accept': 'application/json'}
+    ).json()
+    chars = [int(v) for v in r.get('pdf:charsPerPage', [])]
+    return {
+        "language": r.get('language', None),
+        "charsperpage": chars,
+        "charstotal": sum(chars),
+        "pages": len(chars),
+        "filename": rawFile.filename,
+        "content_type": rawFile.content_type,
+        "size_bytes": rawFile.file.tell(),
+    }
+
+
+@app.post('/extract/', response_class=PlainTextResponse)
+async def extract(ocr: int=0, rawFile: UploadFile = File(...)):
     """
     Extract text from provided file
     """
-    tConf = config['tika']
-    #tika_server = f"http://{tConf['host']}:{tConf['port']}/rmeta/form"
+    if ocr == 0:
+        tConf = config['tika']
+    else:
+        tConf = config['tika_ocr']
+
     tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
     r = requests.post(
         tika_server,
         files={'upload': rawFile.file.read()},
-        #headers={'Accept': 'application/json'}
         headers={'Accept': 'text/plain; charset=UTF-8'}
     )
-    if r.status_code == 200:
-        if r.encoding is None:
-            r.encoding = 'utf-8'
-        return {
-            # "file_size": len(rawFile),
-            "filename": rawFile.filename,
-            "content_type": rawFile.content_type,
-            "size_bytes": rawFile.file.tell(),
-            "html": r.text,
-            "markdown": r.text,
-        }
-        rawText = response.get('X-TIKA:content', 'none')
-        htmlText = rawText.replace('\n', '').encode('ascii', 'xmlcharrefreplace')
 
-        soup = BeautifulSoup(rawText, 'html5lib')
-        body = soup.find('body')
-        # body = soup.find('div', {'class': 'page'})
-        # print('-----------------')
-        # print('-----------------')
-        # print(body.text)
-        # print('-----------------')
-        # print('-----------------')
-        mdText = body.text
-
-        rawFile.file.seek(0, 2)
-        return {
-            # "file_size": len(rawFile),
-            "filename": rawFile.filename,
-            "content_type": rawFile.content_type,
-            "size_bytes": rawFile.file.tell(),
-            "html": htmlText,
-            "markdown": mdText,
-        }
-    else:
+    if r.status_code != 200:
         raise RuntimeError("Failed to extract text from file")
+
+    return r.text
 
 
 # ##################################################################### STARTUP
