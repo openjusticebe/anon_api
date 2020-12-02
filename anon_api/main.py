@@ -156,7 +156,7 @@ async def worker_doc_parser(queue_in, queue_out):
                     tika_server,
                     files={'upload': doc.file.file.read()},
                     headers={'Accept': 'text/plain; charset=UTF-8'},
-                    timeout=600,
+                    timeout=120,
                 )
                 if raw.status_code != 200:
                     queue_out.put_nowait(DocResult(
@@ -174,8 +174,6 @@ async def worker_doc_parser(queue_in, queue_out):
                     datetime.now()
                 ))
 
-            # End of task
-            queue_in.task_done()
         except httpx.httpcore.ReadTimeout:
             queue_out.put_nowait(DocResult(
                 doc.ref,
@@ -192,6 +190,8 @@ async def worker_doc_parser(queue_in, queue_out):
                 'exception occured: internal error',
                 datetime.now()
             ))
+        finally:
+            queue_in.task_done()
 
 
 @app.on_event("startup")
