@@ -7,15 +7,14 @@ import os
 import sys
 import json
 import requests
-import html2markdown
+import uuid
 import httpx
 from datetime import datetime
-from bs4 import BeautifulSoup
 
 import pytz
 import uvicorn
 from collections import namedtuple
-from fastapi import FastAPI, File, UploadFile, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import PlainTextResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.graphql import GraphQLApp
@@ -105,6 +104,7 @@ app.add_middleware(
 async def worker_doc_parser(queue_in, queue_out):
     while True:
         doc = await queue_in.get()
+        logger.debug('Parser job received for %s', doc.ref)
         delta = (datetime.now() - doc.ttl).total_seconds()
         if delta > config['ttl_parse_seconds']:
             queue_out.put_nowait(DocResult(doc.ref, 'error', 'parse_ttl_expired', datetime.now()))
@@ -113,64 +113,77 @@ async def worker_doc_parser(queue_in, queue_out):
         # Get Meta Data
         tConf = config['tika']
         tika_server = f"http://{tConf['host']}:{tConf['port']}/meta/form"
-        async with httpx.AsyncClient() as client:
-            raw = await client.post(
-                tika_server,
-                files={'upload': doc.file.file.read()},
-                headers={'Accept': 'application/json'}
-            )
-            resp = raw.json()
-            chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
+        try:
+            async with httpx.AsyncClient() as client:
+                doc.file.file.seek(0)
+                raw = await client.post(
+                    tika_server,
+                    files={'upload': doc.file.file.read()},
+                    headers={'Accept': 'application/json'}
+                )
+                resp = raw.json()
+                chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
 
-            langCheck = resp.get('language', None) is not None
-            charCheck = sum(chars) > len(chars)
-            skipOCR = langCheck and charCheck
+                langCheck = resp.get('language', None) is not None
+                charCheck = sum(chars) > len(chars)
+                skipOCR = langCheck and charCheck
 
-            data = {
-                "language": resp.get('language', None),
-                "charsperpage": chars,
-                "charstotal": sum(chars),
-                "pages": len(chars),
-                "doOcr": not skipOCR,
-                "filename": doc.file.file.filename,
-                "content_type": doc.file.file.content_type,
-                "size_bytes": doc.file.tell(),
-            }
+                data = {
+                    "language": resp.get('language', None),
+                    "charsperpage": chars,
+                    "charstotal": sum(chars),
+                    "pages": len(chars),
+                    "doOcr": not skipOCR,
+                    "filename": doc.file.filename,
+                    "content_type": doc.file.content_type,
+                    "size_bytes": doc.file.file.tell(),
+                }
 
-        queue_out.put_nowait(DocResult(doc.ref, 'meta', data, datetime.now()))
+            queue_out.put_nowait(DocResult(doc.ref, 'meta', data, datetime.now()))
 
-        # Extract Text
-        if skipOCR:
-            tConf = config['tika']
-        else:
-            tConf = config['tika_ocr']
+            # Extract Text
+            if skipOCR:
+                tConf = config['tika']
+            else:
+                tConf = config['tika_ocr']
 
-        tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
+            tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
 
-        async with httpx.AsyncClient() as client:
-            raw = await client.post(
-                tika_server,
-                files={'upload': rawFile.file.read()},
-                headers={'Accept': 'text/plain; charset=UTF-8'}
-            )
-            if raw.status_code != 200:
+            async with httpx.AsyncClient() as client:
+                doc.file.file.seek(0)
+                raw = await client.post(
+                    tika_server,
+                    files={'upload': doc.file.file.read()},
+                    headers={'Accept': 'text/plain; charset=UTF-8'}
+                )
+                if raw.status_code != 200:
+                    queue_out.put_nowait(DocResult(
+                        doc.ref,
+                        'error',
+                        'extraction_server_error',
+                        datetime.now()
+                    ))
+                    continue
+
                 queue_out.put_nowait(DocResult(
                     doc.ref,
-                    'error',
-                    'extraction_server_error',
+                    'text',
+                    raw.text,
                     datetime.now()
                 ))
-                continue
 
+            # End of task
+            queue_in.task_done()
+        except Exception as e:
+            logger.critical('!!!!! PARSE TASK FAILED !!!! (check tika connection)')
+            logger.exception(e)
             queue_out.put_nowait(DocResult(
                 doc.ref,
-                'text',
-                raw.text,
+                'error',
+                'exception occured: internal error',
                 datetime.now()
             ))
 
-        # End of task
-        queue_in.task_done()
 
 @app.on_event("startup")
 async def startup_event():
@@ -311,27 +324,53 @@ async def fileinfo(rawFile: UploadFile = File(...)):
     }
 
 
-@app.post('/extract/', response_class=PlainTextResponse)
+@app.post('/extract/')
 async def extract(ocr: int = 0, rawFile: UploadFile = File(...)):
     """
     Extract text from provided file
     """
-    if ocr == 0:
-        tConf = config['tika']
-    else:
-        tConf = config['tika_ocr']
+    ref = str(uuid.uuid4())
 
-    tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
-    r = requests.post(
-        tika_server,
-        files={'upload': rawFile.file.read()},
-        headers={'Accept': 'text/plain; charset=UTF-8'}
-    )
+    docTask = DocParse(ref, rawFile, ocr == 1, datetime.now())
 
-    if r.status_code != 200:
-        raise RuntimeError("Failed to extract text from file")
+    QUEUES["parseIn"].put_nowait(docTask)
 
-    return r.text
+    return {
+        'ref': ref
+    }
+
+
+@app.get('/extract/status')
+async def status(ref: str):
+    """
+    Retrieve parse status
+    from file
+    """
+    buff = []
+    try:
+        while True:
+            msg = QUEUES["parseOut"].get_nowait()
+            if msg.ref != ref:
+                buff.append(msg)
+            break
+        return {
+            'ref': ref,
+            'status': msg.key,
+            'value': msg.value
+        }
+    except asyncio.queues.QueueEmpty:
+        return {
+            'ref': ref,
+            'status': 'empty',
+            'value': None
+        }
+    finally:
+        for msg in buff:
+            delta = (datetime.now() - msg.ttl).total_seconds()
+            if delta < config['ttl_result_seconds']:
+                # Filter TTL's
+                logger.info('Putting msg back in queue %s', msg.ref)
+                QUEUES["parseIn"].put_nowait(msg)
 
 
 # ##################################################################### STARTUP
@@ -350,7 +389,6 @@ def main():
         config['log_level'] = 'debug'
         config['server']['log_level'] = 'debug'
         logger.debug('Arguments: %s', args)
-
 
     uvicorn.run(
         app,

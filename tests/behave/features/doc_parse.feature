@@ -8,5 +8,10 @@ Feature: Doc Parsing
 
     Scenario: I can upload a file for extraction
         Given the api is available
-            When I send a file for extraction
-                Then I receive a reference
+            When I send a pdf text file for extraction
+              Then I receive a reference
+        Given I wait a bit
+            When I use the reference to check file status
+              Then I receive some meta data
+            When I use the reference to check file status
+              Then I receive the extracted text
