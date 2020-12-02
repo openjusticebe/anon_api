@@ -348,21 +348,24 @@ async def status(ref: str):
     """
     buff = []
     try:
+        buff = []
         while True:
             msg = QUEUES["parseOut"].get_nowait()
-            if msg.ref != ref:
-                buff.append(msg)
-            break
+            if msg.ref == ref:
+                break
+            buff.append(msg)
         return {
-            'ref': ref,
+            'ref': msg.ref,
             'status': msg.key,
-            'value': msg.value
+            'value': msg.value,
+            'qs': QUEUES["parseOut"].qsize()
         }
     except asyncio.queues.QueueEmpty:
         return {
             'ref': ref,
             'status': 'empty',
-            'value': None
+            'value': None,
+            'qs': QUEUES["parseOut"].qsize()
         }
     finally:
         for msg in buff:
@@ -370,7 +373,7 @@ async def status(ref: str):
             if delta < config['ttl_result_seconds']:
                 # Filter TTL's
                 logger.info('Putting msg back in queue %s', msg.ref)
-                QUEUES["parseIn"].put_nowait(msg)
+                QUEUES["parseOut"].put_nowait(msg)
 
 
 # ##################################################################### STARTUP
