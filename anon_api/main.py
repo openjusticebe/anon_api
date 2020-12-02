@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import asyncio
 import math
 import os
 import sys
 import json
 import requests
 import html2markdown
+import httpx
 from datetime import datetime
 from bs4 import BeautifulSoup
 
 import pytz
 import uvicorn
-from fastapi import FastAPI, File, UploadFile
+from collections import namedtuple
+from fastapi import FastAPI, File, UploadFile, BackgroundTasks
 from fastapi.responses import PlainTextResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.graphql import GraphQLApp
@@ -29,6 +32,9 @@ from anon_api.models import (
 from anon_api.lib_graphql import Query
 
 from anon_api.lib_misc import cfg_get
+
+DocParse = namedtuple('DocAction', ['ref', 'file', 'ocr', 'ttl'])
+DocResult = namedtuple('DocResult', ['ref', 'key', 'value', 'ttl'])
 
 
 def run_get(name):
@@ -71,6 +77,8 @@ config = {
         'version': '1.24.1'
     },
     'log_level': 'info',
+    'ttl_parse_seconds': 60,
+    'ttl_result_seconds': 600,
 }
 config = cfg_get(config)
 print("Applied configuration:")
@@ -78,7 +86,7 @@ print(json.dumps(config, indent=2))
 
 VERSION = 1
 START_TIME = datetime.now(pytz.utc)
-
+QUEUES = {}
 
 # ############################################################### SERVER ROUTES
 # #############################################################################
@@ -92,6 +100,84 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+async def worker_doc_parser(queue_in, queue_out):
+    while True:
+        doc = await queue_in.get()
+        delta = (datetime.now() - doc.ttl).total_seconds()
+        if delta > config['ttl_parse_seconds']:
+            queue_out.put_nowait(DocResult(doc.ref, 'error', 'parse_ttl_expired', datetime.now()))
+            continue
+
+        # Get Meta Data
+        tConf = config['tika']
+        tika_server = f"http://{tConf['host']}:{tConf['port']}/meta/form"
+        async with httpx.AsyncClient() as client:
+            raw = await client.post(
+                tika_server,
+                files={'upload': doc.file.file.read()},
+                headers={'Accept': 'application/json'}
+            )
+            resp = raw.json()
+            chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
+
+            langCheck = resp.get('language', None) is not None
+            charCheck = sum(chars) > len(chars)
+            skipOCR = langCheck and charCheck
+
+            data = {
+                "language": resp.get('language', None),
+                "charsperpage": chars,
+                "charstotal": sum(chars),
+                "pages": len(chars),
+                "doOcr": not skipOCR,
+                "filename": doc.file.file.filename,
+                "content_type": doc.file.file.content_type,
+                "size_bytes": doc.file.tell(),
+            }
+
+        queue_out.put_nowait(DocResult(doc.ref, 'meta', data, datetime.now()))
+
+        # Extract Text
+        if skipOCR:
+            tConf = config['tika']
+        else:
+            tConf = config['tika_ocr']
+
+        tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
+
+        async with httpx.AsyncClient() as client:
+            raw = await client.post(
+                tika_server,
+                files={'upload': rawFile.file.read()},
+                headers={'Accept': 'text/plain; charset=UTF-8'}
+            )
+            if raw.status_code != 200:
+                queue_out.put_nowait(DocResult(
+                    doc.ref,
+                    'error',
+                    'extraction_server_error',
+                    datetime.now()
+                ))
+                continue
+
+            queue_out.put_nowait(DocResult(
+                doc.ref,
+                'text',
+                raw.text,
+                datetime.now()
+            ))
+
+        # End of task
+        queue_in.task_done()
+
+@app.on_event("startup")
+async def startup_event():
+    QUEUES["parseIn"] = asyncio.Queue()
+    QUEUES["parseOut"] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    loop.create_task(worker_doc_parser(QUEUES["parseIn"], QUEUES["parseOut"]))
 
 
 # ############################################################### SERVER ROUTES
@@ -226,7 +312,7 @@ async def fileinfo(rawFile: UploadFile = File(...)):
 
 
 @app.post('/extract/', response_class=PlainTextResponse)
-async def extract(ocr: int=0, rawFile: UploadFile = File(...)):
+async def extract(ocr: int = 0, rawFile: UploadFile = File(...)):
     """
     Extract text from provided file
     """
@@ -257,12 +343,14 @@ def main():
     parser.add_argument('--config', dest='config', help='config file', default=None)
     parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Debug mode')
     args = parser.parse_args()
+
     if args.debug:
         logger.setLevel(logging.getLevelName('DEBUG'))
         logger.debug('Debug activated')
         config['log_level'] = 'debug'
         config['server']['log_level'] = 'debug'
         logger.debug('Arguments: %s', args)
+
 
     uvicorn.run(
         app,
