@@ -119,7 +119,8 @@ async def worker_doc_parser(queue_in, queue_out):
                 raw = await client.post(
                     tika_server,
                     files={'upload': doc.file.file.read()},
-                    headers={'Accept': 'application/json'}
+                    headers={'Accept': 'application/json'},
+                    timeout=30,
                 )
                 resp = raw.json()
                 chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
@@ -154,7 +155,8 @@ async def worker_doc_parser(queue_in, queue_out):
                 raw = await client.post(
                     tika_server,
                     files={'upload': doc.file.file.read()},
-                    headers={'Accept': 'text/plain; charset=UTF-8'}
+                    headers={'Accept': 'text/plain; charset=UTF-8'},
+                    timeout=600,
                 )
                 if raw.status_code != 200:
                     queue_out.put_nowait(DocResult(
@@ -174,6 +176,13 @@ async def worker_doc_parser(queue_in, queue_out):
 
             # End of task
             queue_in.task_done()
+        except httpx.httpcore.ReadTimeout:
+            queue_out.put_nowait(DocResult(
+                doc.ref,
+                'error',
+                'Bad news : Tika Timeout occured ! Document too big ? :(',
+                datetime.now()
+            ))
         except Exception as e:
             logger.critical('!!!!! PARSE TASK FAILED !!!! (check tika connection)')
             logger.exception(e)
@@ -343,8 +352,12 @@ async def extract(ocr: int = 0, rawFile: UploadFile = File(...)):
 @app.get('/extract/status')
 async def status(ref: str):
     """
-    Retrieve parse status
-    from file
+    Retrieve parse status from file parsing task.
+    We just loop on the queue, buffering the other messages
+    until we find a message of interest.
+
+    Whatever happens, the few messages we buffered are put back
+    into the queue.
     """
     buff = []
     try:
