@@ -13,7 +13,7 @@ algorithm is available.
 A specific module also has to be added to the `anon_api/modules` folder, which is responsible for querying and applying the results from the selected algorithm.
 
 ### Usage
-Deployment is through docker or pipenv
+Deployment is through docker or poetry
 
 ```bash
 # docker
@@ -33,4 +33,10 @@ Then check these local URI's:
 Example curl command to test graphql interface:
 ```bash
 curl -X POST -H "Content-Type: application/json" --data '{ "query": "{ algorithms {id, description}}"}' https://anon-api.openjustice.be/gql/
+```
+
+### Testing
+This component uses BDD (behave). To run it (a local tika server is needed):
+```bash
+poetry run python -m behave tests/behave
 ```
