@@ -174,7 +174,7 @@ async def worker_doc_parser(queue_in, queue_out):
                     datetime.now()
                 ))
 
-        except httpx.httpcore.ReadTimeout:
+        except httpx.ReadTimeout:
             queue_out.put_nowait(DocResult(
                 doc.ref,
                 'error',
