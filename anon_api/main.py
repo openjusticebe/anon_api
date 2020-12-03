@@ -83,7 +83,7 @@ config = cfg_get(config)
 print("Applied configuration:")
 print(json.dumps(config, indent=2))
 
-VERSION = 1
+VERSION = 2
 START_TIME = datetime.now(pytz.utc)
 QUEUES = {}
 
