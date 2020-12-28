@@ -43,7 +43,6 @@ async def doc_parser(config, queue_in, queue_ocr, queue_out):
                     timeout=30,
                 )
                 rawResp = raw.json()
-                print(json.dumps(rawResp, indent=2))
                 resp = rawResp[0]
                 chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
 
