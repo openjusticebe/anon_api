@@ -1,8 +1,12 @@
 import yaml
+from collections import namedtuple
 import os
 from datetime import datetime
 import pytz
 import calendar
+
+DocParse = namedtuple('DocAction', ['ref', 'file', 'ocr', 'ttl'])
+DocResult = namedtuple('DocResult', ['ref', 'key', 'value', 'ttl'])
 
 
 def cfg_get(config):

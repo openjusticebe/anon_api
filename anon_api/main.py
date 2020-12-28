@@ -8,12 +8,10 @@ import sys
 import json
 import requests
 import uuid
-import httpx
 from datetime import datetime
 
 import pytz
 import uvicorn
-from collections import namedtuple
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import PlainTextResponse
 from starlette.middleware.cors import CORSMiddleware
@@ -28,12 +26,14 @@ from anon_api.models import (
     ListOutModel,
 )
 
+import anon_api.lib_workers as worker
+
 from anon_api.lib_graphql import Query
 
-from anon_api.lib_misc import cfg_get
-
-DocParse = namedtuple('DocAction', ['ref', 'file', 'ocr', 'ttl'])
-DocResult = namedtuple('DocResult', ['ref', 'key', 'value', 'ttl'])
+from anon_api.lib_misc import (
+    DocParse,
+    cfg_get,
+)
 
 
 def run_get(name):
@@ -83,7 +83,7 @@ config = cfg_get(config)
 print("Applied configuration:")
 print(json.dumps(config, indent=2))
 
-VERSION = 2
+VERSION = "0.2.1"
 START_TIME = datetime.now(pytz.utc)
 QUEUES = {}
 
@@ -101,105 +101,27 @@ app.add_middleware(
 )
 
 
-async def worker_doc_parser(queue_in, queue_out):
-    while True:
-        doc = await queue_in.get()
-        logger.debug('Parser job received for %s', doc.ref)
-        delta = (datetime.now() - doc.ttl).total_seconds()
-        if delta > config['ttl_parse_seconds']:
-            queue_out.put_nowait(DocResult(doc.ref, 'error', 'parse_ttl_expired', datetime.now()))
-            continue
-
-        # Get Meta Data
-        tConf = config['tika']
-        tika_server = f"http://{tConf['host']}:{tConf['port']}/meta/form"
-        try:
-            async with httpx.AsyncClient() as client:
-                doc.file.file.seek(0)
-                raw = await client.post(
-                    tika_server,
-                    files={'upload': doc.file.file.read()},
-                    headers={'Accept': 'application/json'},
-                    timeout=30,
-                )
-                resp = raw.json()
-                chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
-
-                langCheck = resp.get('language', None) is not None
-                charCheck = sum(chars) > len(chars)
-                skipOCR = langCheck and charCheck
-
-                data = {
-                    "language": resp.get('language', None),
-                    "charsperpage": chars,
-                    "charstotal": sum(chars),
-                    "pages": len(chars),
-                    "doOcr": not skipOCR,
-                    "filename": doc.file.filename,
-                    "content_type": doc.file.content_type,
-                    "size_bytes": doc.file.file.tell(),
-                }
-
-            queue_out.put_nowait(DocResult(doc.ref, 'meta', data, datetime.now()))
-
-            # Extract Text
-            if skipOCR:
-                tConf = config['tika']
-            else:
-                tConf = config['tika_ocr']
-
-            tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
-
-            async with httpx.AsyncClient() as client:
-                doc.file.file.seek(0)
-                raw = await client.post(
-                    tika_server,
-                    files={'upload': doc.file.file.read()},
-                    headers={'Accept': 'text/plain; charset=UTF-8'},
-                    timeout=120,
-                )
-                if raw.status_code != 200:
-                    queue_out.put_nowait(DocResult(
-                        doc.ref,
-                        'error',
-                        'extraction_server_error',
-                        datetime.now()
-                    ))
-                    continue
-
-                queue_out.put_nowait(DocResult(
-                    doc.ref,
-                    'text',
-                    raw.text,
-                    datetime.now()
-                ))
-
-        except httpx.ReadTimeout:
-            queue_out.put_nowait(DocResult(
-                doc.ref,
-                'error',
-                'Bad news : Tika Timeout occured ! Document too big ? :(',
-                datetime.now()
-            ))
-        except Exception as e:
-            logger.critical('!!!!! PARSE TASK FAILED !!!! (check tika connection)')
-            logger.exception(e)
-            queue_out.put_nowait(DocResult(
-                doc.ref,
-                'error',
-                'exception occured: internal error',
-                datetime.now()
-            ))
-        finally:
-            queue_in.task_done()
-
-
 @app.on_event("startup")
 async def startup_event():
     QUEUES["parseIn"] = asyncio.Queue()
+    QUEUES["ocrIn"] = asyncio.Queue()
     QUEUES["parseOut"] = asyncio.Queue()
     loop = asyncio.get_event_loop()
-    loop.create_task(worker_doc_parser(QUEUES["parseIn"], QUEUES["parseOut"]))
+
+    # Add doc parsing worker to event loop
+    loop.create_task(worker.doc_parser(
+        config,
+        QUEUES["parseIn"],
+        QUEUES["ocrIn"],
+        QUEUES["parseOut"])
+    )
+
+    # Add doc ocr worker to event loop
+    loop.create_task(worker.tika_ocr(
+        config,
+        QUEUES["ocrIn"],
+        QUEUES["parseOut"])
+    )
 
 
 # ############################################################### SERVER ROUTES
