@@ -75,6 +75,13 @@ config = {
         'port': os.getenv('TIKA_PORT', 9998),
         'version': '1.24.1'
     },
+    'pyghotess': {
+        'host': os.getenv('PGS_HOST', '127.0.0.1'),
+        'port': os.getenv('PGS_PORT', 5501),
+        'method': 'websocket',
+        'version': '3'
+    },
+    'ocr_method': os.getenv('OCR_METHOD', 'pyghotess'),
     'log_level': 'info',
     'ttl_parse_seconds': 60,
     'ttl_result_seconds': 600,
@@ -83,7 +90,7 @@ config = cfg_get(config)
 print("Applied configuration:")
 print(json.dumps(config, indent=2))
 
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 START_TIME = datetime.now(pytz.utc)
 QUEUES = {}
 
@@ -117,11 +124,21 @@ async def startup_event():
     )
 
     # Add doc ocr worker to event loop
-    loop.create_task(worker.tika_ocr(
-        config,
-        QUEUES["ocrIn"],
-        QUEUES["parseOut"])
-    )
+    if config['ocr_method'] == 'tika':
+        loop.create_task(worker.tika_ocr(
+            config,
+            QUEUES["ocrIn"],
+            QUEUES["parseOut"])
+        )
+    elif config['ocr_method'] == 'pyghotess':
+        loop.create_task(worker.pyghotess_ocr(
+            config,
+            QUEUES["ocrIn"],
+            QUEUES["parseOut"])
+        )
+    else:
+        logger.critical('OCR method %s not supported, crashing', config['ocr_method'])
+        raise RuntimeError('Bad or missing OCR method')
 
 
 # ############################################################### SERVER ROUTES
