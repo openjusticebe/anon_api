@@ -160,6 +160,7 @@ async def pyghotess_ocr(config, queue_in, queue_out):
 
     conf = config['pyghotess']
     uri = f"ws://{conf['host']}:{conf['port']}/ws"
+    logger.info(uri)
 
     while True:
         doc = await queue_in.get()
@@ -211,7 +212,7 @@ async def pyghotess_ocr(config, queue_in, queue_out):
                             datetime.now()
                         ))
 
-        except websockets.ConnectionClosedOk:
+        except websockets.ConnectionClosedOK:
             logger.info('Connection closed')
         except websockets.ConnectionClosedError:
             queue_out.put_nowait(DocResult(
