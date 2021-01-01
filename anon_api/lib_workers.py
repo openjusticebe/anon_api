@@ -1,4 +1,5 @@
 import logging
+import websockets
 import json
 from datetime import datetime
 import httpx
@@ -100,7 +101,7 @@ async def tika_ocr(config, queue_in, queue_out):
     tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
     while True:
         doc = await queue_in.get()
-        logger.debug('OCR job received for %s', doc.ref)
+        logger.debug('Tika OCR job received for %s', doc.ref)
         delta = (datetime.now() - doc.ttl).total_seconds()
         if delta > config['ttl_parse_seconds']:
             logger.warning('OCR TTL expired for %s', doc.ref)
@@ -148,4 +149,87 @@ async def tika_ocr(config, queue_in, queue_out):
                 datetime.now()
             ))
         finally:
+            queue_in.task_done()
+
+
+async def pyghotess_ocr(config, queue_in, queue_out):
+    """
+    Send the file to the pyghotess endpoint (only websocket implemented at this point)
+    and wait for the results to come in, pushing them directly to the output queue
+    """
+
+    conf = config['pyghotess']
+    uri = f"ws://{conf['host']}:{conf['port']}/ws"
+    logger.info(uri)
+
+    while True:
+        doc = await queue_in.get()
+        logger.debug('Pyghotess OCR job received for %s', doc.ref)
+        delta = (datetime.now() - doc.ttl).total_seconds()
+        if delta > config['ttl_parse_seconds']:
+            logger.warning('OCR TTL expired for %s', doc.ref)
+            queue_out.put_nowait(DocResult(doc.ref, 'error', 'parse_ttl_expired', datetime.now()))
+            continue
+
+        try:
+            async with websockets.connect(uri) as ws:
+                # Send file to websocket
+                await ws.send(json.dumps({
+                    'action': 'upload',
+                    'filename': doc.ref
+                }))
+                resp = await ws.recv()
+                logger.debug('Upload check : %s', resp)
+                logger.info('Upload request sent')
+
+                # Make sure we're at the start of the file
+                doc.file.file.seek(0)
+                i = 1
+                while chunk := doc.file.file.read(1024 * 1024):
+                    logger.debug('Sending file chunk %s', i)
+                    i += 1
+                    await ws.send(chunk)
+
+                # Send empty byte array to signal end of file
+                await ws.send(bytearray())
+                logger.debug('File %s sent', doc.ref)
+
+                # Wait for OCR results
+                async for message in ws:
+                    result = json.loads(message)
+                    logger.debug('WS message received: %s', result['action'])
+                    if result['action'] == 'done':
+                        break
+                    if result['action'] == 'page_extract':
+                        payload = {
+                            'page': result['meta']['page'],
+                            'text': result['payload']
+                        }
+                        queue_out.put_nowait(DocResult(
+                            doc.ref,
+                            'page',
+                            payload,
+                            datetime.now()
+                        ))
+
+        except websockets.ConnectionClosedOK:
+            logger.info('Connection closed')
+        except websockets.ConnectionClosedError:
+            queue_out.put_nowait(DocResult(
+                doc.ref,
+                'error',
+                'Bad news : Connection closed unexpectedly',
+                datetime.now()
+            ))
+        except Exception as e:
+            logger.critical('!!!!! PYTHOTESS OCR TASK FAILED !!!! (check server logs)')
+            logger.exception(e)
+            queue_out.put_nowait(DocResult(
+                doc.ref,
+                'error',
+                'exception occured: internal error',
+                datetime.now()
+            ))
+        finally:
+            logger.info('Pyghotess ocr done')
             queue_in.task_done()

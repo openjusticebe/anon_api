@@ -75,6 +75,13 @@ config = {
         'port': os.getenv('TIKA_PORT', 9998),
         'version': '1.24.1'
     },
+    'pyghotess': {
+        'host': os.getenv('PGS_HOST', '127.0.0.1'),
+        'port': os.getenv('PGS_PORT', 5501),
+        'method': 'websocket',
+        'version': '3'
+    },
+    'ocr_method': os.getenv('OCR_METHOD', 'pyghotess'),
     'log_level': 'info',
     'ttl_parse_seconds': 60,
     'ttl_result_seconds': 600,
@@ -83,7 +90,8 @@ config = cfg_get(config)
 print("Applied configuration:")
 print(json.dumps(config, indent=2))
 
-VERSION = "0.2.1"
+VERSION = "0.3.0"
+API_VERSION = 3
 START_TIME = datetime.now(pytz.utc)
 QUEUES = {}
 
@@ -117,11 +125,21 @@ async def startup_event():
     )
 
     # Add doc ocr worker to event loop
-    loop.create_task(worker.tika_ocr(
-        config,
-        QUEUES["ocrIn"],
-        QUEUES["parseOut"])
-    )
+    if config['ocr_method'] == 'tika':
+        loop.create_task(worker.tika_ocr(
+            config,
+            QUEUES["ocrIn"],
+            QUEUES["parseOut"])
+        )
+    elif config['ocr_method'] == 'pyghotess':
+        loop.create_task(worker.pyghotess_ocr(
+            config,
+            QUEUES["ocrIn"],
+            QUEUES["parseOut"])
+        )
+    else:
+        logger.critical('OCR method %s not supported, crashing', config['ocr_method'])
+        raise RuntimeError('Bad or missing OCR method')
 
 
 # ############################################################### SERVER ROUTES
@@ -139,7 +157,8 @@ def root():
         'timestamp': now,
         'start_time': START_TIME,
         'uptime': f'{delta_s} seconds | {divmod(delta_s, 60)[0]} minutes | {divmod(delta_s, 86400)[0]} days',
-        'api_version': VERSION,
+        'version': VERSION,
+        'api_version': API_VERSION,
     }
 
 
@@ -149,7 +168,7 @@ def list():
     List available algorithms, and optionaly their arguments and types
     """
     return {
-        '_v': VERSION,
+        '_v': API_VERSION,
         '_timestamp': datetime.now(pytz.utc),
         'data': [
             'test'
@@ -178,7 +197,7 @@ def run(data: RunInModel):
             log_lines = log_lines + log
 
         return {
-            '_v': VERSION,
+            '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'text': result,
             'log': json.dumps({'lines': log_lines}),
@@ -187,7 +206,7 @@ def run(data: RunInModel):
     except Exception as e:
         logger.exception(e)
         return {
-            '_v': VERSION,
+            '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'text': data.text,
             'log': json.dumps({'error': f"Error occured: {str(e)}"}),
@@ -215,7 +234,7 @@ def parse(data: ParseInModel):
             log_lines = log_lines + log
 
         return {
-            '_v': VERSION,
+            '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'entities': json.dumps(result),
             'log': json.dumps({'lines': log_lines}),
@@ -224,7 +243,7 @@ def parse(data: ParseInModel):
     except Exception as e:
         logger.exception(e)
         return {
-            '_v': VERSION,
+            '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'entities': '{}',
             'log': json.dumps({'error': f"Error occured: {str(e)}"}),
