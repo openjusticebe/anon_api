@@ -91,6 +91,7 @@ print("Applied configuration:")
 print(json.dumps(config, indent=2))
 
 VERSION = "0.3.0"
+API_VERSION = 3
 START_TIME = datetime.now(pytz.utc)
 QUEUES = {}
 
@@ -156,7 +157,8 @@ def root():
         'timestamp': now,
         'start_time': START_TIME,
         'uptime': f'{delta_s} seconds | {divmod(delta_s, 60)[0]} minutes | {divmod(delta_s, 86400)[0]} days',
-        'api_version': VERSION,
+        'version': VERSION,
+        'api_version': API_VERSION,
     }
 
 
@@ -166,7 +168,7 @@ def list():
     List available algorithms, and optionaly their arguments and types
     """
     return {
-        '_v': VERSION,
+        '_v': API_VERSION,
         '_timestamp': datetime.now(pytz.utc),
         'data': [
             'test'
@@ -195,7 +197,7 @@ def run(data: RunInModel):
             log_lines = log_lines + log
 
         return {
-            '_v': VERSION,
+            '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'text': result,
             'log': json.dumps({'lines': log_lines}),
@@ -204,7 +206,7 @@ def run(data: RunInModel):
     except Exception as e:
         logger.exception(e)
         return {
-            '_v': VERSION,
+            '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'text': data.text,
             'log': json.dumps({'error': f"Error occured: {str(e)}"}),
@@ -232,7 +234,7 @@ def parse(data: ParseInModel):
             log_lines = log_lines + log
 
         return {
-            '_v': VERSION,
+            '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'entities': json.dumps(result),
             'log': json.dumps({'lines': log_lines}),
@@ -241,7 +243,7 @@ def parse(data: ParseInModel):
     except Exception as e:
         logger.exception(e)
         return {
-            '_v': VERSION,
+            '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
             'entities': '{}',
             'log': json.dumps({'error': f"Error occured: {str(e)}"}),
