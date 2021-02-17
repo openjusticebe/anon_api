@@ -4,15 +4,11 @@ import os
 from datetime import datetime
 import pytz
 import calendar
+import logging
 
+logger = logging.getLogger(__name__)
 DocParse = namedtuple('DocAction', ['ref', 'file', 'ocr', 'ttl'])
 DocResult = namedtuple('DocResult', ['ref', 'key', 'value', 'ttl'])
-
-
-def cfg_get(config):
-    def_config_file = open('config_default.yaml', 'r')
-    def_config = yaml.safe_load(def_config_file)
-    return {**def_config, **config}
 
 
 def check_envs(env_list):
@@ -22,3 +18,17 @@ def check_envs(env_list):
 def get_now():
     now = datetime.now(pytz.utc)
     return calendar.timegm(now.utctimetuple())
+
+
+def run_get(name):
+    module_path = f'{name}'
+    logger.info('Module: %s', module_path)
+    module = __import__(module_path)
+    return getattr(module, 'run')
+
+
+def parse_get(name):
+    module_path = f'{name}'
+    logger.info('Module: %s', module_path)
+    module = __import__(module_path)
+    return getattr(module, 'parse')

@@ -26,13 +26,13 @@ async def doc_parser(config, queue_in, queue_ocr, queue_out):
         doc = await queue_in.get()
         logger.debug('Parser job received for %s', doc.ref)
         delta = (datetime.now() - doc.ttl).total_seconds()
-        if delta > config['ttl_parse_seconds']:
+        if delta > config.key('ttl_parse_seconds'):
             logger.warning('Parse TTL expired for %s', doc.ref)
             queue_out.put_nowait(DocResult(doc.ref, 'error', 'parse_ttl_expired', datetime.now()))
             continue
 
         # Get Meta Data
-        tConf = config['tika']
+        tConf = config.key('tika')
         tika_server = f"http://{tConf['host']}:{tConf['port']}/rmeta/form/text"
         try:
             async with httpx.AsyncClient() as client:
@@ -97,13 +97,13 @@ async def doc_parser(config, queue_in, queue_ocr, queue_out):
 
 
 async def tika_ocr(config, queue_in, queue_out):
-    tConf = config['tika_ocr']
+    tConf = config.key('tika_ocr')
     tika_server = f"http://{tConf['host']}:{tConf['port']}/tika/form"
     while True:
         doc = await queue_in.get()
         logger.debug('Tika OCR job received for %s', doc.ref)
         delta = (datetime.now() - doc.ttl).total_seconds()
-        if delta > config['ttl_parse_seconds']:
+        if delta > config.key('ttl_parse_seconds'):
             logger.warning('OCR TTL expired for %s', doc.ref)
             queue_out.put_nowait(DocResult(doc.ref, 'error', 'parse_ttl_expired', datetime.now()))
             continue
@@ -158,15 +158,15 @@ async def pyghotess_ocr(config, queue_in, queue_out):
     and wait for the results to come in, pushing them directly to the output queue
     """
 
-    conf = config['pyghotess']
+    conf = config.key('pyghotess')
     uri = f"ws://{conf['host']}:{conf['port']}/ws"
-    logger.info(uri)
+    logger.info('Websocket uri defined as :%s', uri)
 
     while True:
         doc = await queue_in.get()
         logger.debug('Pyghotess OCR job received for %s', doc.ref)
         delta = (datetime.now() - doc.ttl).total_seconds()
-        if delta > config['ttl_parse_seconds']:
+        if delta > config.key('ttl_parse_seconds'):
             logger.warning('OCR TTL expired for %s', doc.ref)
             queue_out.put_nowait(DocResult(doc.ref, 'error', 'parse_ttl_expired', datetime.now()))
             continue

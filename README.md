@@ -1,3 +1,16 @@
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/openjusticebe)
+[![Generic badge](https://img.shields.io/badge/Open-Justice-green.svg)](https://shields.io/)
+<p align="center">
+  <a href="https://openjustice.be">
+    <img alt="logo Openjustice.be" src="https://raw.githubusercontent.com/openjusticebe/ui-assets/main/svg/OpenJustice.be_clear.svg" width="120" />
+  </a>
+</p>
+<h1 align="center">
+  Openjustice.be
+</h1>
+
+[OpenJustice.be](https://openjustice.be) is a non-profit legaltech aiming to open up access to legal knowledge (court decisions, law, doctrine, ...) and instill a true digital-native culture in the world of belgian justice digitalisation.
+
 # Upload API
 Upload API offers stateless (ie: no storage or recording of data) operations (Text extraction, pseudonymisation, OCR, ...) to the upload interface from the OpenJustice platform.
 
@@ -68,7 +81,7 @@ Please make sure to update tests as appropriate.
 ## Legacy
 This API has been built up from a previous incarnation, as such some legacy code is still present, such as testing multiple anonymisation algorithms. See below for info
 ### Configuration
-Algorithms are detailed in the `config_default.yaml` file for the moment.
+Algorithms are detailed in the `config_default.toml` file for the moment.
 Parameters are not supported yet. A check is done on the required environment variables to know if the
 algorithm is available.
 
