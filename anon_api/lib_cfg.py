@@ -1,7 +1,9 @@
-from functools import reduce
-import os
 import operator
+import os
+from functools import reduce
+
 import yaml
+
 from .deps import logger
 
 

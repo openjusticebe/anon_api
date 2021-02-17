@@ -1,10 +1,11 @@
-import yaml
-from collections import namedtuple
-import os
-from datetime import datetime
-import pytz
 import calendar
 import logging
+import os
+from collections import namedtuple
+from datetime import datetime
+
+import pytz
+import yaml
 
 logger = logging.getLogger(__name__)
 DocParse = namedtuple('DocAction', ['ref', 'file', 'ocr', 'ttl'])

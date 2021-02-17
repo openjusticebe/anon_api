@@ -1,5 +1,6 @@
 import graphene as g
-from .lib_cfg import (config)
+
+from .lib_cfg import config
 from .lib_misc import check_envs
 
 ALGO_CONFIG = config.key('algorithms')

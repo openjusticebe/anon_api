@@ -1,35 +1,27 @@
 #!/usr/bin/env python3
 import argparse
-import logging
 import asyncio
+import logging
 import math
-import toml
 import os
 import sys
 from datetime import datetime
 
+import graphene
 import pytz
+import toml
 import uvicorn
 from fastapi import FastAPI
-from starlette.middleware.cors import CORSMiddleware
 from starlette.graphql import GraphQLApp
-import graphene
-
-from anon_api.models import (
-    ListOutModel,
-)
-
-from .routers import (
-    extract,
-    anonymise,
-)
+from starlette.middleware.cors import CORSMiddleware
 
 import anon_api.lib_workers as worker
-
 from anon_api.lib_graphql import Query
+from anon_api.models import ListOutModel
 
-from .deps import (logger, QUEUES, API_VERSION)
-from .lib_cfg import (config)
+from .deps import API_VERSION, QUEUES, logger
+from .lib_cfg import config
+from .routers import anonymise, extract
 
 # ####################################################################### SETUP
 # ##############################################################################

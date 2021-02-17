@@ -1,11 +1,11 @@
-import logging
-import websockets
 import json
+import logging
 from datetime import datetime
+
 import httpx
-from anon_api.lib_misc import (
-    DocResult,
-)
+import websockets
+
+from anon_api.lib_misc import DocResult
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.getLevelName('INFO'))

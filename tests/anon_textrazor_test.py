@@ -1,10 +1,12 @@
 export TRAZOR_KEY_0=8f7f87edc606a48f87bfaf0791a55078a3ae36bd1a34e4ff492c2b80
 
 from anon_textrazor import *
+
 text = "Considérant les concertations entre les gouvernements des entités fédérées et les autorités Guadeloupe fédérales compétentes Jean Yves Daniel"
 run(text, [])
 
 from anon_etaamb import *
+
 run(
     "Considérant les concertations entre les gouvernements des entités fédérées et les autorités Guadeloupe fédérales compétentes Jean Yves Daniel",
     {'lang': 'french'}
