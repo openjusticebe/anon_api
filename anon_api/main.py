@@ -28,7 +28,7 @@ from .routers import anonymise, extract
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, f'{dir_path}/modules')
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 START_TIME = datetime.now(pytz.utc)
 
 tags_metadata = [
