@@ -34,20 +34,15 @@ def parse(text, _params):
     """
     Find and return possible matches
     """
-    check = []
     matches = []
     log = []
     idx = 0
     for m in MASKS:
-        print('----')
-        print(text)
-        print('----')
         match = re.finditer(m.mask, text, flags=re.IGNORECASE)
         idx += 1
         if match:
             words = [x.group(0) for x in match]
             msg = f"Found value type {m.name} : {words}"
-            print(msg)
             log.append(msg)
             matches.append({
                 'words': ' '.join(words),
@@ -59,5 +54,4 @@ def parse(text, _params):
         else:
             print(f"{m.name} did not match")
 
-    print(matches)
     return matches, log
