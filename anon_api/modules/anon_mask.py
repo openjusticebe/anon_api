@@ -42,6 +42,8 @@ def parse(text, _params):
         idx += 1
         if match:
             words = [x.group(0) for x in match]
+            if len(words) == 0:
+                continue
             msg = f"Found value type {m.name} : {words}"
             log.append(msg)
             matches.append({
