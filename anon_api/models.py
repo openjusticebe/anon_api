@@ -56,12 +56,11 @@ class RunInModel(BaseModel):
                 '_v': 1,
                 '_timestamp': 1239120938,
                 'algo_list': [
-                    {'id': 'algo_1', 'params': "{}"},
-                    {'id': 'algo_2', 'params': "{}"}
+                    {'id': 'anon_trazor', 'params': "{}"}
                 ],
                 'format': 'text',
                 'encoding': 'utf8',
-                'text': 'Lorem Ipsum ...'
+                'text': 'Robert serait le fils d\'Erlebert et le neveu de Robert, référendaire de Dagobert Ier.'
             }}
 
 

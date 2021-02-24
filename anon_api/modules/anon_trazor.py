@@ -4,7 +4,12 @@ import os
 import random
 from textrazor import TextRazor
 """
-Integrate with the anon etaamb container
+Integrate with textrazor
+
+Optional Parameters:
+    method : (only for **run**)
+        - html : add span with classes around pseudonymized content (default)
+        - brackets : only display brackets
 """
 
 logger = logging.getLogger(__name__)
@@ -68,19 +73,23 @@ def get_key(barrel, skip=False):
 
 def run(text, params):
     entities = get_entities(text, params)
+    output = params.get('method', 'html')
     log = []
     for e in entities:
         log.append(f"Found \"{e['id']}\" ({e['type']} #{e['index']}), score: {e['score']}")
         text = re.sub(f"qu'(?={e['text']})", 'que ', text, flags=re.IGNORECASE)
         text = re.sub(f"d'(?={e['text']})", 'de ', text, flags=re.IGNORECASE)
         title = f'{e["type"]}_{e["index"]}'
-        text = re.sub(f"{e['text']}", f'<span class="pseudonymized {e["type"]} {title}">{title}</span>', text, flags=re.IGNORECASE)
+        if output == 'brackets':
+            text = re.sub(f"{e['text']}", f'[ {title} ]', text, flags=re.IGNORECASE)
+        else:
+            text = re.sub(f"{e['text']}", f'<span class="pseudonymized {e["type"]} {title}">{title}</span>', text, flags=re.IGNORECASE)
     return text, log
 
 
 def parse(text, params):
     entities = get_entities(text, params)
-    matches = {}
+    matches = []
     log = []
     logger.warning(entities)
     for e in entities:
@@ -90,12 +99,12 @@ def parse(text, params):
                 matches[e['id']]['text'].append(e['text'])
         else:
             title = f'{e["type"]}_{e["index"]}'
-            matches[e['id']] = {
+            matches.append({
                 'text': [e['text']],
                 'words': e.get('words', []),
                 'type': e['type'],
                 'id': title,
-            }
+            })
     return matches, log
 
 

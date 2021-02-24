@@ -1,7 +1,9 @@
 import graphene as g
-from anon_api.lib_misc import cfg_get, check_envs
 
-ALGO_CONFIG = cfg_get({})['algorithms']
+from .lib_cfg import config
+from .lib_misc import check_envs
+
+ALGO_CONFIG = config.key('algorithms')
 
 
 class Algorithm(g.ObjectType):

@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/)
 and to the [CHANGELOG recommendations](http://keepachangelog.com/).
 ## Alpha Development
 
+### [0.4.0] - (2020-02-24)
+- Refactoring code
+- Adding new methods
+- Documentation update
+- Added "method" option to `anon_trazor` module
+- Adding mask anon method
+
 ### [0.3.0] - (2020-12-29)
 - Implemented Pyghotess streaming OCR option
 - Using Pyghotess as default ocr
