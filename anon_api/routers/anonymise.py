@@ -71,8 +71,8 @@ def parse(data: ParseInModel):
     Run selected algorightms, get entities and types
     """
     plugins = config.key('algorithms')
-    result = data.text
     log_lines = []
+    result = []
     try:
         for algo in data.algo_list:
             if algo.id not in plugins:
@@ -82,7 +82,7 @@ def parse(data: ParseInModel):
                 if p not in algo.params:
                     raise RuntimeError(f"Required parameter {p} not provided")
             parse = parse_get(algo.id)
-            result, log = parse(result, algo.params)
+            result, log = parse(data.text, algo.params)
             log_lines = log_lines + log
 
         return {
@@ -97,6 +97,6 @@ def parse(data: ParseInModel):
         return {
             '_v': API_VERSION,
             '_timestamp': datetime.now(pytz.utc),
-            'entities': '{}',
+            'entities': '[]',
             'log': json.dumps({'error': f"Error occured: {str(e)}"}),
         }
