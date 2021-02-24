@@ -21,3 +21,9 @@
   url = "https://github.com/openjusticebe/anon_torch_bert"
   params = [ ]
   env_required = [ "ANON_BERT_HOST" ]
+
+[algorithms.anon_mask]
+  description = "Removal of info by mask matching"
+  url = ""
+  params = [ ]
+  env_required = [ ] 

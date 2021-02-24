@@ -61,7 +61,7 @@ def run(data: RunInModel):
             '_timestamp': datetime.now(pytz.utc),
             'text': data.text,
             'log': json.dumps({'error': f"Error occured: {str(e)}"}),
-            'received': json.dumps(data),
+            'received': data,
         }
 
 
