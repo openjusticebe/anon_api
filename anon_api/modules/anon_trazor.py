@@ -89,7 +89,7 @@ def run(text, params):
 
 def parse(text, params):
     entities = get_entities(text, params)
-    matches = []
+    matches = {}
     log = []
     logger.warning(entities)
     for e in entities:
@@ -99,12 +99,12 @@ def parse(text, params):
                 matches[e['id']]['text'].append(e['text'])
         else:
             title = f'{e["type"]}_{e["index"]}'
-            matches.append({
+            matches[e['id']] = {
                 'text': [e['text']],
                 'words': e.get('words', []),
                 'type': e['type'],
                 'id': title,
-            })
+            }
     return matches, log
 
 
