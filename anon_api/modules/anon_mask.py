@@ -34,7 +34,7 @@ def parse(text, _params):
     """
     Find and return possible matches
     """
-    matches = []
+    matches = {}
     log = []
     idx = 0
     for m in MASKS:
@@ -46,12 +46,13 @@ def parse(text, _params):
                 continue
             msg = f"Found value type {m.name} : {words}"
             log.append(msg)
-            matches.append({
+            el_id = re.sub(r'[\W_]+', '-', ''.join(words))
+            matches[el_id] = {
                 'words': ' '.join(words),
                 'text': [x for x in words if x],
                 'id': idx,
                 'type': m.name,
-            })
+            }
             # check.append(match.group(0))
         else:
             print(f"{m.name} did not match")
