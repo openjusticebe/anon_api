@@ -119,7 +119,13 @@ def get_entities(text, params):
     barrel = api_keys()
     client = TextRazor(get_key(barrel), extractors=["entities"])
     client.set_entity_allow_overlap = False
-    response = client.analyze(text)
+    workText = text
+    if True:
+        # if params.get('partial') is True:
+        if len(text) > 6000:
+            workText = text[:4000] + text[-500:]
+
+    response = client.analyze(workText)
 
     if not response.ok:
         raise RuntimeError(response.error)
