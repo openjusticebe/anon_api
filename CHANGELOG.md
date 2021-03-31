@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/)
 and to the [CHANGELOG recommendations](http://keepachangelog.com/).
 ## Alpha Development
 
+### [0.4.1] - (2020-03-31)
+- Anon mask email fix
+
 ### [0.4.0] - (2020-02-24)
 - Refactoring code
 - Adding new methods
