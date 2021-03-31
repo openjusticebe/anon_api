@@ -8,7 +8,7 @@ Mask = namedtuple('Mask', 'name mask replace')
 MASKS = [
     # Yes, this is not optimal, but it works for now
     # Mask('email', r'\b[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}\b', '[ email@example.com ]'),
-    Mask('email', r'\b[a-z0-9][a-z0-9._\-+]+[a-z0-9][@][\w\-._\-+]+[.]\w+\b', '[ email@example.com ]'),
+    Mask('email', r'\b[a-z0-9]+([a-z0-9._\-+]+[a-z0-9])?[@][\w\-._\-+]+[.]\w+\b', '[ email@example.com ]'),
     Mask('RN', r'\b[0-9]{2}[.\-]{0,1}[0-9]{2}[.\-]{0,1}[0-9]{2}[.\-]{0,1}[0-9]{3}[.\-]{0,1}[0-9]{2}\b', '[ XXXX ]'),
     Mask('IBAN', r'\b[A-Z]{2}[0-9]{2}(?:[ ]?[0-9]{4}){3,4}(?:[ ]?[0-9]{1,2})?\b', '[ BE03 1111 2222 3333 5555 ]'),
     Mask('company', r'\b(BE)?0?\d{3}[.\- ]?\d{3}[.\- ]?\d{3}\b', '[ XXXX ]'),
