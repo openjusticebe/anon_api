@@ -80,16 +80,23 @@ async def doc_parser(config, queue_in, queue_ocr, queue_out):
             queue_out.put_nowait(DocResult(
                 doc.ref,
                 'error',
-                'Bad news : Tika Timeout occured ! Document too big ? :(',
+                'Timeout occured ! Document too big ? :(',
+                datetime.now()
+            ))
+        except httpx.NetworkError:
+            queue_out.put_nowait(DocResult(
+                doc.ref,
+                'error',
+                'Server is gone fishing!',
                 datetime.now()
             ))
         except Exception as e:
-            logger.critical('!!!!! PARSE TASK FAILED !!!! (check tika connection)')
+            logger.critical('!!!!! PARSE TASK FAILED !!!! (what happened ?)')
             logger.exception(e)
             queue_out.put_nowait(DocResult(
                 doc.ref,
                 'error',
-                'exception occured: internal error',
+                'Unexpected exception occured - sorry !',
                 datetime.now()
             ))
         finally:
