@@ -8,7 +8,7 @@ import websockets
 from anon_api.lib_misc import DocResult
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.getLevelName('DEBUG'))
+logger.setLevel(logging.getLevelName('INFO'))
 logger.addHandler(logging.StreamHandler())
 
 
@@ -45,12 +45,30 @@ async def doc_parser(config, queue_in, queue_ocr, queue_out):
                 )
                 rawResp = raw.json()
                 resp = rawResp[0]
-                logger.debug('Response received')
-                logger.debug('Tika Content handler : %s', resp.get('X-TIKA:content_handler'))
-                logger.debug('Tika Parser(s) : %s', resp.get('X-TIKA:Parsed-By'))
-                logger.debug('Keys : %s', resp.keys())
-                # logger.debug(rest)
-                chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
+
+                mimeType = resp.get('Content-Type')
+                logger.info('Tika Content type : %s', mimeType)
+                logger.info('Tika Content handler : %s', resp.get('X-TIKA:content_handler'))
+                logger.info('Tika Parser(s) : %s', resp.get('X-TIKA:Parsed-By'))
+                logger.info('Tika Parse Time ms : %s', resp.get('X-TIKA:parse_time_millis'))
+
+                logger.debug('Keys : %s', json.dumps(sorted(resp.keys()), indent=2))
+
+                if mimeType == 'application/pdf':
+                    # PDF (image & text)
+                    chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
+                elif mimeType in ('application/msword', 'application/rtf', 'application/epub', 'application/epub+zip'):
+                    # Doc & RTF
+                    chars = [len(resp.get('X-TIKA:content'))]
+                    pages = 0
+                elif 'text/plain' in mimeType:
+                    # Plain text variants
+                    chars = [len(resp.get('X-TIKA:content'))]
+                    pages = 0
+                else:
+                    # Default: works for Word, LibreOffice and OpenOffice
+                    chars = [int(resp.get('meta:character-count', 0))]
+                    pages = resp.get('meta:page-count', 0)
 
                 langCheck = resp.get('language', None) is not None
                 charCheck = sum(chars) > len(chars)
@@ -60,7 +78,8 @@ async def doc_parser(config, queue_in, queue_ocr, queue_out):
                     "language": resp.get('language', None),
                     "charsperpage": chars,
                     "charstotal": sum(chars),
-                    "pages": len(chars),
+                    "pages": pages,
+                    "parsetime_ms": resp.get('X-TIKA:parse_time_millis'),
                     "doOcr": doOcr,
                     "filename": doc.file.filename,
                     "content_type": doc.file.content_type,

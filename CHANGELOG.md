@@ -7,10 +7,14 @@ This project adheres to [Semantic Versioning](http://semver.org/)
 and to the [CHANGELOG recommendations](http://keepachangelog.com/).
 ## Alpha Development
 
-### [0.4.1] - (2020-03-31)
+### [0.4.2] - (2021-11-21)
+- Added support for most common file extensions
+- Updating tika version support
+
+### [0.4.1] - (2021-03-31)
 - Anon mask email fix
 
-### [0.4.0] - (2020-02-24)
+### [0.4.0] - (2021-02-24)
 - Refactoring code
 - Adding new methods
 - Documentation update
@@ -34,4 +38,3 @@ and to the [CHANGELOG recommendations](http://keepachangelog.com/).
 ### [0.1.1] - (2020-11-11)
 - Added changelog
 - Using poetry instead of pipenv
-
