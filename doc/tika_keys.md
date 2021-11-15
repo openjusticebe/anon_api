@@ -123,6 +123,7 @@ Keys : [
 - Tika Content handler : ToTextContentHandler
 - Tika Parser(s) : ['org.apache.tika.parser.DefaultParser', 'org.apache.tika.parser.odf.OpenDocumentParser']
 
+```
 Keys : [
   "Content-Type",
   "X-TIKA:Parsed-By",
@@ -149,6 +150,7 @@ Keys : [
   "meta:word-count",
   "xmpTPg:NPages"
 ]
+```
 
 # RTF Document
 
@@ -176,6 +178,7 @@ Keys : [
 - Tika Content type : text/plain; charset=UTF-8
 - Tika Content handler : ToTextContentHandler
 - Tika Parser(s) : ['org.apache.tika.parser.DefaultParser', 'org.apache.tika.parser.csv.TextAndCSVParser']
+
 ```
 Keys : [
   "Content-Encoding",
