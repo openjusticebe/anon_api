@@ -8,7 +8,7 @@ import websockets
 from anon_api.lib_misc import DocResult
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.getLevelName('INFO'))
+logger.setLevel(logging.getLevelName('DEBUG'))
 logger.addHandler(logging.StreamHandler())
 
 
@@ -45,6 +45,11 @@ async def doc_parser(config, queue_in, queue_ocr, queue_out):
                 )
                 rawResp = raw.json()
                 resp = rawResp[0]
+                logger.debug('Response received')
+                logger.debug('Tika Content handler : %s', resp.get('X-TIKA:content_handler'))
+                logger.debug('Tika Parser(s) : %s', resp.get('X-TIKA:Parsed-By'))
+                logger.debug('Keys : %s', resp.keys())
+                # logger.debug(rest)
                 chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
 
                 langCheck = resp.get('language', None) is not None
