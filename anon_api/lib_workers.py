@@ -57,6 +57,7 @@ async def doc_parser(config, queue_in, queue_ocr, queue_out):
                 if mimeType == 'application/pdf':
                     # PDF (image & text)
                     chars = [int(v) for v in resp.get('pdf:charsPerPage', [])]
+                    pages = resp.get('xmpTPg:NPages', 0)
                 elif mimeType in ('application/msword', 'application/rtf', 'application/epub', 'application/epub+zip'):
                     # Doc & RTF
                     chars = [len(resp.get('X-TIKA:content'))]
