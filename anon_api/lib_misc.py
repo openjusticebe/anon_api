@@ -9,7 +9,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 DocParse = namedtuple('DocAction', ['ref', 'file', 'ocr', 'ttl'])
-DocResult = namedtuple('DocResult', ['ref', 'key', 'value', 'ttl'])
+DocResult = namedtuple('DocResult', ['ref', 'key', 'value', 'ttl', 'key'])
 
 
 def check_envs(env_list):
