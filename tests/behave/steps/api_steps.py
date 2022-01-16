@@ -117,3 +117,54 @@ def step_impl(context):
     print(parsed_text)
     assert('Robert' not in parsed_text)
     assert('Lambert' not in parsed_text)
+
+
+@when(u'I send some raw text with useful information')
+def step_impl(context):
+    payload = {
+        '_v': 1,
+        '_timestamp': 1239120938,
+        'text': '''
+Monsieur
+
+R.G. : 20/97/ A
+- 1 -
+Rép. 2020/
+
+NA/C/446/20
+tribunal du travail de Liège
+division Namur
+Audience de la 7ème chambre du 26 JUIN 2020
+
+JUGEMENT
+
+En cause de :
+Monsieur Gérard N., RN n° XXX, domicilié à 5000 Namur, XXX
+
+partie demanderesse, comparaissant par son conseil Me Ph. VERSAILLES, avocat à 5000 Namur, rue Saint Jacques, 32,
+
+Contre :
+LE CPAS DE NAMUR , dont les bureaux sont établis rue de Dave, 165  à 5100   JAMBES, BCE 0211.085.163,
+
+partie défenderesse, comparaissant par Me L. ANCIAUX DE FAVEAUX, avocat à 5000 NAMUR, Chaussée de Dinant 275,
+
+'''
+    }
+    r = requests.post(
+        f'http://{context.api_host}:{context.api_port}/textmeta/',
+        json=payload
+    )
+    assert r.status_code == 200
+    context.json = r.json()
+
+
+@then(u'I receive a response with data')
+def step_impl(context):
+    print(json.dumps(context.json, indent=2))
+    assert context.json['_v'] is not None
+
+
+@then(u'field "{key}" has correct value "{value}"')
+def step_impl(context, key, value):
+    assert str(context.json[key]) == str(value)
+

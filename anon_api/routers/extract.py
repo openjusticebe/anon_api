@@ -3,14 +3,28 @@ from datetime import datetime
 import asyncio
 import uuid
 import requests
+import pytz
 from ..lib_cfg import (config)
 from ..lib_misc import (
     DocParse,
+)
+from ..lib_datamine import (
+    DataMiner,
+)
+from ..models import (
+    ExtractInModel,
+    ExtractOutModel,
 )
 from ..deps import (
     # config,
     logger,
     QUEUES,
+)
+
+from ..deps import (
+    # config,
+    logger,
+    API_VERSION,
 )
 
 router = APIRouter()
@@ -95,4 +109,34 @@ async def fileinfo(rawFile: UploadFile = File(...)):
         "filename": rawFile.filename,
         "content_type": rawFile.content_type,
         "size_bytes": rawFile.file.tell(),
+    }
+
+
+@router.post('/textmeta/', response_model=ExtractOutModel, tags=['extract'])
+async def textmeta(data: ExtractInModel):
+    """
+    Attempt to extract basic information from provided text
+    - Country (BE by default)
+    - Court (source)
+    - Year
+    - Language (FR|NL|DE)
+
+    Maybe later on:
+    - Labels
+    - Appeal
+    """
+    miner = DataMiner(data.text)
+    payload = {
+        'country': 'BE',
+        'court': 'RSCE',
+        'year': 2010,
+        'lang': 'NL',
+        'appeal': 'nodata',
+        'labels': []
+    }
+    miner.enrich(payload)
+    return {
+        **payload,
+        '_v': API_VERSION,
+        '_timestamp': datetime.now(pytz.utc),
     }

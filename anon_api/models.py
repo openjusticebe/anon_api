@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, Json, PositiveInt
 
@@ -117,8 +117,52 @@ class RunOutModel(BaseModel):
                 'log': '{}'
             }}
 
+
 class ExtractInModel(BaseModel):
-    pass
+    v: PositiveInt = Field(..., alias='_v', description="Version")
+    timestamp: datetime = Field(..., alias='_timestamp', description="Timestamp (UNIX Epoch)")
+    text: str = Field(..., description="Subject text")
+
+    class Config:
+        schema_extra = {
+            'example': {
+                '_v': 1,
+                '_timestamp': 1239120938,
+                'text': 'Lorem ***** ...',
+            }}
+
+
+class LanguageTypes(str, Enum):
+    FR = 'FR'
+    NL = 'NL'
+    DE = 'DE'
+
+
+class AppealType(str, Enum):
+    nodata = 'nodata'
+    yes = 'yes'
+    no = 'no'
+
 
 class ExtractOutModel(BaseModel):
-    pass
+    v: PositiveInt = Field(..., alias='_v', description="Version")
+    timestamp: datetime = Field(..., alias='_timestamp', description="Timestamp (UNIX Epoch)")
+    country: str = Field(..., description="Country Code")
+    court: str = Field(..., description="Court code")
+    year: Optional[int] = Field(..., description="Year")
+    lang: LanguageTypes = Field(..., description="Document Language")
+    appeal: AppealType = Field(..., description="Appeal")
+    labels: list
+
+    class Config:
+        schema_extra = {
+            'example': {
+                '_v': 1,
+                '_timestamp': 1239120938,
+                'country': 'BE',
+                'court': 'RSCE',
+                'year': 2010,
+                'lang': 'NL',
+                'appeal': 'nodata',
+                'labels': []
+            }}
