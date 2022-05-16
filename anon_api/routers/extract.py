@@ -35,7 +35,7 @@ async def extract(ocr: int = 0, rawFile: UploadFile = File(...)):
 
 
 @router.get('/extract/status', tags=['extract'])
-async def status(ref: str):
+async def status(refx: str):
     """
     Retrieve parse status from file parsing task.
     We just loop on the queue, buffering the other messages
@@ -49,7 +49,7 @@ async def status(ref: str):
         buff = []
         while True:
             msg = QUEUES["parseOut"].get_nowait()
-            if msg.ref == ref:
+            if msg.ref == refx:
                 break
             buff.append(msg)
         return {
@@ -60,7 +60,7 @@ async def status(ref: str):
         }
     except asyncio.queues.QueueEmpty:
         return {
-            'ref': ref,
+            'ref': refx,
             'status': 'empty',
             'value': None,
             'qs': QUEUES["parseOut"].qsize()
