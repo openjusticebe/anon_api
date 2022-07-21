@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/)
 and to the [CHANGELOG recommendations](http://keepachangelog.com/).
 ## Alpha Development
 
+### [0.4.3] - (2022-07-21)
+- Fixed parameter naming bug
+- Updating dependencies
+
 ### [0.4.2] - (2021-11-21)
 - Added support for most common file extensions
 - Updating tika version support
