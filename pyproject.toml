@@ -20,7 +20,7 @@ unicode = "^2.7"
 bs4 = "^0.0.1"
 lxml = "^4.6.1"
 html2markdown = "^0.1.7"
-httpx = "^0.16.1"
+httpx = "^0.23.0"
 websockets = "^8.1"
 toml = "^0.10.2"
 
